@@ -1,0 +1,69 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: roommate-management-backend
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/roommate_management?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      # Schema is owned by database/schema.sql, not Hibernate. "none" trusts that
+      # migration as the source of truth instead of validating column-for-column
+      # against it (safer across MySQL versions / minor type differences).
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+    open-in-view: false
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 15MB
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:roommate-management-super-secret-key-change-in-production-min-256-bits-long-0123456789}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}       # 24 hours
+    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}  # 7 days
+  file-storage:
+    base-dir: ${FILE_STORAGE_DIR:uploads}
+    max-file-size-mb: 10
+    allowed-image-types: image/jpeg,image/png,image/jpg,image/webp
+    allowed-doc-types: image/jpeg,image/png,image/jpg,application/pdf
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.roommate.management: INFO
+    org.springframework.security: WARN

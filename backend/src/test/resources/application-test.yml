@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: sa
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+app:
+  jwt:
+    secret: test-secret-key-for-unit-tests-only-not-for-production-use-0123456789
+    expiration-ms: 3600000
+    refresh-expiration-ms: 604800000
+  file-storage:
+    base-dir: test-uploads
+    max-file-size-mb: 10
+    allowed-image-types: image/jpeg,image/png,image/jpg,image/webp
+    allowed-doc-types: image/jpeg,image/png,image/jpg,application/pdf
+  cors:
+    allowed-origins: http://localhost:4200

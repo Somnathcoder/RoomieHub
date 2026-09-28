@@ -1,0 +1,18 @@
+package com.roommate.management.entity.enums;
+
+public enum NotificationType {
+    NEW_EXPENSE,
+    EXPENSE_APPROVED,
+    EXPENSE_REJECTED,
+    PAYMENT_REMINDER,
+    BILL_DUE,
+    CLEANING_REMINDER,
+    TASK_ASSIGNED,
+    TASK_DUE,
+    NEW_ANNOUNCEMENT,
+    NEW_PRIVATE_MESSAGE,
+    POLL_CREATED,
+    ISSUE_STATUS_CHANGED,
+    MEMBER_ADDED,
+    GENERAL
+}
