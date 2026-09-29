@@ -6,6 +6,7 @@ import com.roommate.management.dto.response.BillResponse;
 import com.roommate.management.entity.Bill;
 import com.roommate.management.entity.RoomMember;
 import com.roommate.management.entity.enums.*;
+import com.roommate.management.exception.BadRequestException;
 import com.roommate.management.exception.ResourceNotFoundException;
 import com.roommate.management.repository.BillRepository;
 import com.roommate.management.repository.RoomMemberRepository;
@@ -78,7 +79,15 @@ public class BillService {
         if (request.amount() != null) bill.setAmount(request.amount());
         if (request.dueDate() != null) bill.setDueDate(request.dueDate());
         if (request.category() != null) bill.setCategory(request.category());
-        if (request.amountPaid() != null) bill.setAmountPaid(request.amountPaid());
+        if (request.amountPaid() != null) {
+            if (request.amountPaid().compareTo(BigDecimal.ZERO) < 0) {
+                throw new BadRequestException("Amount paid cannot be negative");
+            }
+            if (request.amountPaid().compareTo(bill.getAmount()) > 0) {
+                throw new BadRequestException("Amount paid cannot exceed the bill amount");
+            }
+            bill.setAmountPaid(request.amountPaid());
+        }
         if (request.paidByMemberId() != null) {
             RoomMember paidBy = roomMemberRepository.findById(request.paidByMemberId())
                     .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
@@ -110,6 +119,7 @@ public class BillService {
     @Transactional
     public String uploadPhoto(Long userId, Long billId, MultipartFile file) {
         RoomMember caller = roomAccessService.getActiveMembership(userId);
+        roomAccessService.requirePermission(caller, PermissionCode.MANAGE_BILL);
         Bill bill = billRepository.findById(billId).orElseThrow(() -> new ResourceNotFoundException("Bill not found"));
         roomAccessService.requireSameRoom(caller, bill.getRoom().getId());
         String path = fileStorageService.store(file, "bills", List.of("image/jpeg", "image/png", "image/jpg", "application/pdf"));

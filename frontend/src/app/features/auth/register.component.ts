@@ -31,14 +31,17 @@ import { ToastService } from '../../core/services/toast.service';
             }
           </div>
           <div class="form-group">
-            <label for="mobileNumber">Mobile number (optional)</label>
+            <label for="mobileNumber">Mobile number</label>
             <input id="mobileNumber" type="text" formControlName="mobileNumber" placeholder="9876543210" />
+            @if (form.controls.mobileNumber.invalid && form.controls.mobileNumber.touched) {
+              <div class="field-error">Enter a valid 10-digit mobile number.</div>
+            }
           </div>
           <div class="form-group">
             <label for="password">Password</label>
-            <input id="password" type="password" formControlName="password" placeholder="At least 6 characters" />
+            <input id="password" type="password" formControlName="password" placeholder="At least 8 characters, with a letter and a number" />
             @if (form.controls.password.invalid && form.controls.password.touched) {
-              <div class="field-error">Password must be at least 6 characters.</div>
+              <div class="field-error">Password must be at least 8 characters and include a letter and a number.</div>
             }
           </div>
 
@@ -70,8 +73,8 @@ export class RegisterComponent {
   form = this.fb.nonNullable.group({
     fullName: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
-    mobileNumber: [''],
-    password: ['', [Validators.required, Validators.minLength(6)]]
+    mobileNumber: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
+    password: ['', [Validators.required, Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/)]]
   });
 
   submit() {

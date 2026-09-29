@@ -7,11 +7,12 @@ import { ToastService } from '../../core/services/toast.service';
 import { Poll } from '../../core/models/poll.model';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state.component';
+import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.component';
 
 @Component({
   selector: 'app-polls',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent, EmptyStateComponent],
+  imports: [CommonModule, ReactiveFormsModule, LoadingSpinnerComponent, EmptyStateComponent, ConfirmDialogComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -49,7 +50,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state.compone
               }
               <p class="text-muted" style="font-size:12px;">{{ p.totalVotes }} total votes · by {{ p.createdByName }}</p>
               @if (canManage() && p.status === 'OPEN') {
-                <button class="btn btn-secondary btn-sm" (click)="close(p)">Close poll</button>
+                <button class="btn btn-secondary btn-sm" (click)="confirmClose.set(p)">Close poll</button>
               }
             </div>
           }
@@ -76,6 +77,15 @@ import { EmptyStateComponent } from '../../shared/components/empty-state.compone
         </div>
       </div>
     }
+
+    <app-confirm-dialog
+      [open]="!!confirmClose()"
+      title="Close poll?"
+      [message]="confirmClose() ? ('Close \\'' + confirmClose()!.question + '\\'? No further votes will be accepted, and this cannot be undone.') : ''"
+      confirmLabel="Close poll"
+      (confirm)="doClose()"
+      (cancel)="confirmClose.set(null)"
+    />
   `
 })
 export class PollsComponent {
@@ -135,10 +145,14 @@ export class PollsComponent {
     });
   }
 
-  close(p: Poll) {
+  confirmClose = signal<Poll | null>(null);
+
+  doClose() {
+    const p = this.confirmClose();
+    if (!p) return;
     this.service.close(p.id).subscribe({
-      next: () => { this.toast.success('Poll closed.'); this.refresh(); },
-      error: (err) => this.toast.error(err.error?.message ?? 'Could not close poll.')
+      next: () => { this.toast.success('Poll closed.'); this.confirmClose.set(null); this.refresh(); },
+      error: (err) => { this.toast.error(err.error?.message ?? 'Could not close poll.'); this.confirmClose.set(null); }
     });
   }
 }

@@ -3,6 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivityLogService } from '../../core/services/activity-log.service';
 import { MemberService } from '../../core/services/member.service';
+import { ToastService } from '../../core/services/toast.service';
 import { ActivityLog } from '../../core/models/activity-log.model';
 import { Member } from '../../core/models/member.model';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner.component';
@@ -73,6 +74,7 @@ const MODULES = ['ROOM', 'MEMBER', 'EXPENSE', 'SETTLEMENT', 'BILL', 'GROCERY', '
 export class ActivityLogComponent {
   private service = inject(ActivityLogService);
   private memberService = inject(MemberService);
+  private toast = inject(ToastService);
 
   modules = MODULES;
   members = signal<Member[]>([]);
@@ -86,7 +88,10 @@ export class ActivityLogComponent {
 
   constructor() {
     this.refresh();
-    this.memberService.list().subscribe(list => this.members.set(list));
+    this.memberService.list().subscribe({
+      next: (list) => this.members.set(list),
+      error: () => this.toast.error('Could not load members.')
+    });
   }
 
   refresh() {

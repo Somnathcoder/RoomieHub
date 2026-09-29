@@ -239,9 +239,12 @@ export class ExpensesComponent {
 
   constructor() {
     this.refresh();
-    this.memberService.list().subscribe(list => {
-      this.members.set(list);
-      this.includedMembers.set(new Set(list.map(m => m.roomMemberId)));
+    this.memberService.list().subscribe({
+      next: (list) => {
+        this.members.set(list);
+        this.includedMembers.set(new Set(list.map(m => m.roomMemberId)));
+      },
+      error: () => this.toast.error('Could not load members.')
     });
   }
 

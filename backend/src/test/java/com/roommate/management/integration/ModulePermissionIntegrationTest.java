@@ -33,7 +33,7 @@ class ModulePermissionIntegrationTest {
     private ObjectMapper objectMapper;
 
     private String registerAndLogin(String name, String email) throws Exception {
-        Map<String, String> body = Map.of("fullName", name, "email", email, "password", "password123");
+        Map<String, String> body = Map.of("fullName", name, "email", email, "password", "password123", "mobileNumber", "9555555555");
         MvcResult result = mockMvc.perform(post("/api/auth/register")
                         .contentType("application/json").content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk()).andReturn();

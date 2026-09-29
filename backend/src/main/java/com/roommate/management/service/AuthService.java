@@ -1,5 +1,6 @@
 package com.roommate.management.service;
 
+import com.roommate.management.dto.request.ChangePasswordRequest;
 import com.roommate.management.dto.request.ForgotPasswordRequest;
 import com.roommate.management.dto.request.LoginRequest;
 import com.roommate.management.dto.request.RegisterRequest;
@@ -17,6 +18,7 @@ import com.roommate.management.repository.UserRepository;
 import com.roommate.management.security.JwtUtil;
 import com.roommate.management.util.RandomPasswordGenerator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +34,10 @@ public class AuthService {
     private final RoomMemberRepository roomMemberRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final EmailService emailService;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -67,11 +73,12 @@ public class AuthService {
         Optional<User> userOpt = userRepository.findByEmailIgnoreCase(request.email());
         // Always behave the same way whether or not the email exists, to avoid leaking which emails are registered.
         userOpt.ifPresent(user -> {
-            user.setResetToken(RandomPasswordGenerator.generateToken());
+            String token = RandomPasswordGenerator.generateToken();
+            user.setResetToken(token);
             user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
             userRepository.save(user);
-            // NOTE: In production this token would be emailed to the user via JavaMailSender.
-            // For local development the token can be read from the database directly.
+            String resetLink = frontendUrl + "/reset-password?token=" + token;
+            emailService.sendPasswordResetEmail(user.getEmail(), user.getFullName(), resetLink);
         });
     }
 
@@ -85,6 +92,19 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         user.setResetToken(null);
         user.setResetTokenExpiry(null);
+        user.setMustChangePassword(false);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new UnauthorizedException("Current password is incorrect");
+        }
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        user.setMustChangePassword(false);
         userRepository.save(user);
     }
 
@@ -94,6 +114,7 @@ public class AuthService {
         Long roomId = membership.map(m -> m.getRoom().getId()).orElse(null);
         String roomName = membership.map(m -> m.getRoom().getRoomName()).orElse(null);
         String role = membership.map(m -> m.getRole().name()).orElse(null);
-        return new AuthResponse(token, "Bearer", user.getId(), user.getFullName(), user.getEmail(), roomId, roomName, role);
+        return new AuthResponse(token, "Bearer", user.getId(), user.getFullName(), user.getEmail(), roomId, roomName, role,
+                user.isMustChangePassword());
     }
 }

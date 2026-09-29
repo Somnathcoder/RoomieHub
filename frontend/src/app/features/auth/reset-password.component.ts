@@ -22,7 +22,10 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
           <div class="form-group">
             <label for="newPassword">New password</label>
-            <input id="newPassword" type="password" formControlName="newPassword" placeholder="At least 6 characters" />
+            <input id="newPassword" type="password" formControlName="newPassword" placeholder="At least 8 characters, with a letter and a number" />
+            @if (form.controls.newPassword.invalid && form.controls.newPassword.touched) {
+              <div class="field-error">Password must be at least 8 characters and include a letter and a number.</div>
+            }
           </div>
 
           @if (errorMessage()) { <div class="field-error mb-2">{{ errorMessage() }}</div> }
@@ -51,7 +54,7 @@ export class ResetPasswordComponent {
 
   form = this.fb.nonNullable.group({
     token: ['', Validators.required],
-    newPassword: ['', [Validators.required, Validators.minLength(6)]]
+    newPassword: ['', [Validators.required, Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/)]]
   });
 
   constructor() {

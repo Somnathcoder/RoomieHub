@@ -58,12 +58,16 @@ export class NotificationsComponent {
 
   markRead(n: AppNotification) {
     if (n.isRead) return;
-    this.service.markRead(n.id).subscribe({ next: () => this.refresh() });
+    this.service.markRead(n.id).subscribe({
+      next: () => this.refresh(),
+      error: () => this.toast.error('Could not mark notification as read.')
+    });
   }
 
   markAllRead() {
     this.service.markAllRead().subscribe({
-      next: () => { this.toast.success('All notifications marked as read.'); this.refresh(); }
+      next: () => { this.toast.success('All notifications marked as read.'); this.refresh(); },
+      error: () => this.toast.error('Could not mark all notifications as read.')
     });
   }
 }

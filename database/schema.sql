@@ -2,16 +2,15 @@
 -- Roommate Management System - MySQL Schema
 -- =====================================================================
 -- Run this once against an empty database, e.g.:
---   mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS roommate_management"
+--   mysql -u root -p -e "-- CREATE DATABASE IF NOT EXISTS defaultdb"
 --   mysql -u root -p roommate_management < schema.sql
 --
 -- The application is configured with spring.jpa.hibernate.ddl-auto=none,
 -- so this file (not Hibernate) is the single source of truth for the schema.
 -- =====================================================================
 
-CREATE DATABASE IF NOT EXISTS roommate_management
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE roommate_management;
+-- CREATE DATABASE IF NOT EXISTS defaultdb
+USE defaultdb;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -30,6 +29,7 @@ CREATE TABLE users (
     enabled             TINYINT(1)    NOT NULL DEFAULT 1,
     reset_token         VARCHAR(255)  NULL,
     reset_token_expiry  DATETIME      NULL,
+    must_change_password TINYINT(1)   NOT NULL DEFAULT 0,
     created_at          DATETIME      NOT NULL,
     updated_at          DATETIME      NULL,
     CONSTRAINT uk_users_email UNIQUE (email)
@@ -101,7 +101,8 @@ CREATE TABLE room_members (
     updated_at    DATETIME     NULL,
     CONSTRAINT uk_room_user UNIQUE (room_id, user_id),
     CONSTRAINT fk_room_members_room FOREIGN KEY (room_id) REFERENCES rooms(id),
-    CONSTRAINT fk_room_members_user FOREIGN KEY (user_id) REFERENCES users(id)
+    CONSTRAINT fk_room_members_user FOREIGN KEY (user_id) REFERENCES users(id),
+    INDEX idx_room_members_user (user_id)
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------
@@ -171,7 +172,7 @@ CREATE TABLE expenses (
     CONSTRAINT fk_expenses_paid_by FOREIGN KEY (paid_by) REFERENCES room_members(id),
     CONSTRAINT fk_expenses_created_by FOREIGN KEY (created_by) REFERENCES room_members(id),
     CONSTRAINT fk_expenses_approved_by FOREIGN KEY (approved_by) REFERENCES room_members(id),
-    CONSTRAINT fk_expenses_recurring FOREIGN KEY (recurring_expense_id) REFERENCES recurring_expenses(id),
+    CONSTRAINT fk_expenses_recurring FOREIGN KEY (recurring_expense_id) REFERENCES recurring_expenses(id) ON DELETE SET NULL,
     INDEX idx_expenses_room_date (room_id, expense_date),
     INDEX idx_expenses_status (status)
 ) ENGINE=InnoDB;
@@ -237,7 +238,7 @@ CREATE TABLE shopping_items (
     updated_at          DATETIME NULL,
     CONSTRAINT fk_shopping_room FOREIGN KEY (room_id) REFERENCES rooms(id),
     CONSTRAINT fk_shopping_added_by FOREIGN KEY (added_by) REFERENCES room_members(id),
-    CONSTRAINT fk_shopping_expense FOREIGN KEY (linked_expense_id) REFERENCES expenses(id)
+    CONSTRAINT fk_shopping_expense FOREIGN KEY (linked_expense_id) REFERENCES expenses(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------

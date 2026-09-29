@@ -57,7 +57,8 @@ class AuthFlowIntegrationTest {
         Map<String, String> registerBody = Map.of(
                 "fullName", "Another User",
                 "email", "another@example.com",
-                "password", "correctPassword"
+                "password", "correctPassword1",
+                "mobileNumber", "9888888888"
         );
         mockMvc.perform(post("/api/auth/register")
                         .contentType("application/json")
@@ -74,7 +75,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     void duplicateRegistration_returnsConflict() throws Exception {
-        Map<String, String> body = Map.of("fullName", "Dup User", "email", "dup@example.com", "password", "password123");
+        Map<String, String> body = Map.of("fullName", "Dup User", "email", "dup@example.com", "password", "password123", "mobileNumber", "9777777777");
         mockMvc.perform(post("/api/auth/register").contentType("application/json").content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk());
         mockMvc.perform(post("/api/auth/register").contentType("application/json").content(objectMapper.writeValueAsString(body)))

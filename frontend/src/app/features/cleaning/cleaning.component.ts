@@ -10,11 +10,12 @@ import { Member } from '../../core/models/member.model';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
+import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.component';
 
 @Component({
   selector: 'app-cleaning',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, LoadingSpinnerComponent, EmptyStateComponent, StatusBadgeComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, LoadingSpinnerComponent, EmptyStateComponent, StatusBadgeComponent, ConfirmDialogComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -43,7 +44,7 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
         } @else {
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Title</th><th>Type</th><th>Date</th><th>Time</th><th>Assigned to</th><th>Status</th><th></th></tr></thead>
+              <thead><tr><th>Title</th><th>Type</th><th>Date</th><th>Time</th><th>Assigned to</th><th>Status</th><th></th><th></th></tr></thead>
               <tbody>
                 @for (c of schedules(); track c.id) {
                   <tr>
@@ -60,6 +61,11 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
                           <option value="IN_PROGRESS">In progress</option>
                           <option value="COMPLETED">Completed</option>
                         </select>
+                      }
+                    </td>
+                    <td>
+                      @if (canManage()) {
+                        <button class="btn btn-danger btn-sm" (click)="confirmDeleteSchedule.set(c)">Delete</button>
                       }
                     </td>
                   </tr>
@@ -151,6 +157,15 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
         </div>
       </div>
     }
+
+    <app-confirm-dialog
+      [open]="!!confirmDeleteSchedule()"
+      title="Delete schedule?"
+      [message]="confirmDeleteSchedule() ? ('Delete the \\'' + confirmDeleteSchedule()!.title + '\\' cleaning task? This cannot be undone.') : ''"
+      confirmLabel="Delete"
+      (confirm)="doDeleteSchedule()"
+      (cancel)="confirmDeleteSchedule.set(null)"
+    />
   `
 })
 export class CleaningComponent {
@@ -170,6 +185,7 @@ export class CleaningComponent {
 
   showCreateSchedule = signal(false);
   saving = signal(false);
+  confirmDeleteSchedule = signal<CleaningSchedule | null>(null);
   showCreateRotation = signal(false);
   rotationSaving = signal(false);
   rotationMembers = signal<number[]>([]);
@@ -190,7 +206,10 @@ export class CleaningComponent {
 
   constructor() {
     this.refresh();
-    this.memberService.list().subscribe(list => this.members.set(list));
+    this.memberService.list().subscribe({
+      next: (list) => this.members.set(list),
+      error: () => this.toast.error('Could not load members.')
+    });
   }
 
   canManage() { return this.auth.isAdmin() || this.auth.isModerator(); }
@@ -201,7 +220,10 @@ export class CleaningComponent {
       next: (list) => { this.schedules.set(list); this.loading.set(false); },
       error: () => this.loading.set(false)
     });
-    this.service.listRotations().subscribe(list => this.rotations.set(list));
+    this.service.listRotations().subscribe({
+      next: (list) => this.rotations.set(list),
+      error: () => this.toast.error('Could not load cleaning rotations.')
+    });
   }
 
   openCreateSchedule() {
@@ -226,6 +248,15 @@ export class CleaningComponent {
     this.service.updateSchedule(c.id, { status }).subscribe({
       next: () => { this.toast.success('Updated.'); this.refresh(); },
       error: (err) => this.toast.error(err.error?.message ?? 'Could not update.')
+    });
+  }
+
+  doDeleteSchedule() {
+    const c = this.confirmDeleteSchedule();
+    if (!c) return;
+    this.service.deleteSchedule(c.id).subscribe({
+      next: () => { this.toast.success('Schedule deleted.'); this.confirmDeleteSchedule.set(null); this.refresh(); },
+      error: (err) => { this.toast.error(err.error?.message ?? 'Could not delete schedule.'); this.confirmDeleteSchedule.set(null); }
     });
   }
 

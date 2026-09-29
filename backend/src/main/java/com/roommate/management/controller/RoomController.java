@@ -25,7 +25,7 @@ public class RoomController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<RoomResponse>> getRoom(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(roomService.getRoom(id)));
+    public ResponseEntity<ApiResponse<RoomResponse>> getRoom(@AuthenticationPrincipal SecurityUser principal, @PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(roomService.getRoom(principal.getId(), id)));
     }
 }

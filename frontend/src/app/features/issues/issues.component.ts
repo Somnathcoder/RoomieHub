@@ -54,6 +54,10 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
                   </select>
                 }
               </div>
+              <label class="btn btn-secondary btn-sm mt-1" style="cursor:pointer;">
+                {{ i.photoUrl ? 'Replace photo' : 'Add photo' }}
+                <input type="file" accept="image/*" hidden (change)="uploadPhoto(i, $event)" />
+              </label>
             </div>
           }
         </div>
@@ -134,6 +138,15 @@ export class IssuesComponent {
     this.service.updateStatus(i.id, status).subscribe({
       next: () => { this.toast.success('Updated.'); this.refresh(); },
       error: (err) => this.toast.error(err.error?.message ?? 'Could not update.')
+    });
+  }
+
+  uploadPhoto(i: Issue, event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.service.uploadPhoto(i.id, file).subscribe({
+      next: () => { this.toast.success('Photo uploaded.'); this.refresh(); },
+      error: (err) => this.toast.error(err.error?.message ?? 'Upload failed.')
     });
   }
 }

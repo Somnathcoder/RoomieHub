@@ -3,8 +3,8 @@ package com.roommate.management.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
-public record ResetPasswordRequest(
-        @NotBlank String token,
+public record ChangePasswordRequest(
+        @NotBlank String currentPassword,
         @NotBlank
         @Pattern(
                 regexp = "^(?=.*[A-Za-z])(?=.*\\d).{8,100}$",

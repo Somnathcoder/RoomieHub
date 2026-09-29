@@ -56,6 +56,7 @@ public class MemberService {
                     .password(passwordEncoder.encode(rawPassword))
                     .mobileNumber(request.mobileNumber())
                     .enabled(true)
+                    .mustChangePassword(true)
                     .build();
             user = userRepository.save(user);
         } else if (roomMemberRepository.findByUserIdAndStatus(user.getId(), MemberStatus.ACTIVE).isPresent()) {

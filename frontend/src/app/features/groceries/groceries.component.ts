@@ -11,11 +11,12 @@ import { Member } from '../../core/models/member.model';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
+import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.component';
 
 @Component({
   selector: 'app-groceries',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DecimalPipe, LoadingSpinnerComponent, EmptyStateComponent, StatusBadgeComponent],
+  imports: [CommonModule, ReactiveFormsModule, DecimalPipe, LoadingSpinnerComponent, EmptyStateComponent, StatusBadgeComponent, ConfirmDialogComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -48,7 +49,7 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
                     } @else if (!i.billPhotoUrl) {
                       <span class="text-muted">Converted to expense</span>
                     }
-                    <button class="btn btn-danger btn-sm" (click)="delete(i)">Delete</button>
+                    <button class="btn btn-danger btn-sm" (click)="confirmDelete.set(i)">Delete</button>
                   </td>
                 </tr>
               }
@@ -99,6 +100,8 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
         </div>
       </div>
     }
+
+    <app-confirm-dialog [open]="!!confirmDelete()" title="Remove item?" (confirm)="doDelete()" (cancel)="confirmDelete.set(null)" />
   `
 })
 export class GroceriesComponent {
@@ -116,6 +119,7 @@ export class GroceriesComponent {
   addLoading = signal(false);
   convertItem = signal<ShoppingItem | null>(null);
   convertLoading = signal(false);
+  confirmDelete = signal<ShoppingItem | null>(null);
 
   addForm = this.fb.nonNullable.group({
     itemName: ['', Validators.required],
@@ -130,7 +134,10 @@ export class GroceriesComponent {
 
   constructor() {
     this.refresh();
-    this.memberService.list().subscribe(list => this.members.set(list));
+    this.memberService.list().subscribe({
+      next: (list) => this.members.set(list),
+      error: () => this.toast.error('Could not load members.')
+    });
   }
 
   refresh() {
@@ -174,10 +181,12 @@ export class GroceriesComponent {
     });
   }
 
-  delete(i: ShoppingItem) {
+  doDelete() {
+    const i = this.confirmDelete();
+    if (!i) return;
     this.service.delete(i.id).subscribe({
-      next: () => { this.toast.success('Item removed.'); this.refresh(); },
-      error: (err) => this.toast.error(err.error?.message ?? 'Could not remove item.')
+      next: () => { this.toast.success('Item removed.'); this.confirmDelete.set(null); this.refresh(); },
+      error: (err) => { this.toast.error(err.error?.message ?? 'Could not remove item.'); this.confirmDelete.set(null); }
     });
   }
 }

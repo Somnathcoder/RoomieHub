@@ -204,6 +204,11 @@ public class ExpenseService {
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
         roomAccessService.requireSameRoom(caller, expense.getRoom().getId());
+        boolean isCreator = expense.getCreatedBy().getId().equals(caller.getId());
+        boolean canManage = caller.getRole() == RoleType.ADMIN || roomAccessService.hasPermission(caller, PermissionCode.MANAGE_EXPENSE);
+        if (!isCreator && !canManage) {
+            throw new ForbiddenException("You cannot modify this expense's receipt");
+        }
         String path = fileStorageService.store(file, "receipts", List.of("image/jpeg", "image/png", "image/jpg", "application/pdf"));
         expense.setReceiptPhotoUrl(fileStorageService.toPublicUrl(path));
         expenseRepository.save(expense);

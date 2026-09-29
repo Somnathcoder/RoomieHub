@@ -3,10 +3,12 @@ package com.roommate.management.controller;
 import com.roommate.management.dto.request.*;
 import com.roommate.management.dto.response.AuthResponse;
 import com.roommate.management.exception.ApiResponse;
+import com.roommate.management.security.SecurityUser;
 import com.roommate.management.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -36,5 +38,14 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Password has been reset successfully", null));
+    }
+
+    // Deliberately NOT covered by the /api/auth/** permitAll rule in SecurityConfig - see
+    // PUBLIC_ENDPOINTS there, which lists the exact public auth paths instead of the wildcard.
+    @PostMapping("/change-password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(@AuthenticationPrincipal SecurityUser principal,
+                                                              @Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(principal.getId(), request);
+        return ResponseEntity.ok(ApiResponse.success("Password changed successfully", null));
     }
 }

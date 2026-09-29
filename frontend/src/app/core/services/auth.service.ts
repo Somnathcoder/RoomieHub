@@ -38,6 +38,10 @@ export class AuthService {
     return this.http.post<ApiResponse<void>>(`${environment.apiUrl}/auth/reset-password`, { token, newPassword });
   }
 
+  changePassword(currentPassword: string, newPassword: string): Observable<ApiResponse<void>> {
+    return this.http.post<ApiResponse<void>>(`${environment.apiUrl}/auth/change-password`, { currentPassword, newPassword });
+  }
+
   refreshSession(updated: Partial<AuthResponse>) {
     const current = this._currentUser();
     if (!current) return;

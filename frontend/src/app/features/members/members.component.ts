@@ -55,7 +55,7 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
                   <td>{{ m.roomNumber ?? '—' }} / {{ m.bedNumber ?? '—' }}</td>
                   <td>
                     @if (auth.isAdmin() && m.role !== 'ADMIN') {
-                      <select [ngModel]="m.role" (ngModelChange)="changeRole(m, $event)" style="width:auto;">
+                      <select [ngModel]="m.role" (ngModelChange)="promptRoleChange(m, $event)" style="width:auto;">
                         <option value="MEMBER">MEMBER</option>
                         <option value="MODERATOR">MODERATOR</option>
                       </select>
@@ -66,7 +66,7 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
                   <td><app-status-badge [status]="m.status" /></td>
                   <td>
                     @if (m.hasIdProof) {
-                      <a [href]="memberService.idProofDownloadUrl(m.roomMemberId)" target="_blank" class="btn-link">View</a>
+                      <button type="button" class="btn-link" (click)="viewIdProof(m)">View</button>
                     } @else { <span class="text-muted">Not uploaded</span> }
                   </td>
                   <td class="flex-gap">
@@ -172,6 +172,16 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
         </div>
       </div>
     }
+
+    <app-confirm-dialog
+      [open]="!!pendingRoleChange()"
+      title="Change role?"
+      [message]="pendingRoleChange() ? ('Change ' + pendingRoleChange()!.member.fullName + '\\'s role to ' + pendingRoleChange()!.role + '?') : ''"
+      confirmLabel="Change role"
+      [danger]="false"
+      (confirm)="confirmRoleChange()"
+      (cancel)="pendingRoleChange.set(null)"
+    />
   `
 })
 export class MembersComponent {
@@ -247,10 +257,18 @@ export class MembersComponent {
     });
   }
 
-  changeRole(m: Member, role: string) {
-    this.memberService.changeRole(m.roomMemberId, role).subscribe({
-      next: () => { this.toast.success('Role updated.'); this.refresh(); },
-      error: (err) => this.toast.error(err.error?.message ?? 'Could not change role.')
+  pendingRoleChange = signal<{ member: Member; role: string } | null>(null);
+
+  promptRoleChange(m: Member, role: string) {
+    this.pendingRoleChange.set({ member: m, role });
+  }
+
+  confirmRoleChange() {
+    const pending = this.pendingRoleChange();
+    if (!pending) return;
+    this.memberService.changeRole(pending.member.roomMemberId, pending.role).subscribe({
+      next: () => { this.toast.success('Role updated.'); this.pendingRoleChange.set(null); this.refresh(); },
+      error: (err) => { this.toast.error(err.error?.message ?? 'Could not change role.'); this.pendingRoleChange.set(null); }
     });
   }
 
@@ -277,6 +295,21 @@ export class MembersComponent {
     this.memberService.uploadIdProof(m.roomMemberId, file).subscribe({
       next: () => { this.toast.success('ID proof uploaded.'); this.refresh(); },
       error: (err) => this.toast.error(err.error?.message ?? 'Upload failed.')
+    });
+  }
+
+  viewIdProof(m: Member) {
+    // Open the tab synchronously (on the click gesture) so popup blockers don't stop it,
+    // then point it at the blob once the authenticated fetch resolves.
+    const tab = window.open('', '_blank');
+    this.memberService.viewIdProof(m.roomMemberId).subscribe({
+      next: (blob) => {
+        if (tab) tab.location.href = URL.createObjectURL(blob);
+      },
+      error: (err) => {
+        if (tab) tab.close();
+        this.toast.error(err.error?.message ?? 'Could not load ID proof.');
+      }
     });
   }
 

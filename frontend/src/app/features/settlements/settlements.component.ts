@@ -7,11 +7,12 @@ import { Settlement, MemberBalance, SettlementSummary } from '../../core/models/
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
+import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.component';
 
 @Component({
   selector: 'app-settlements',
   standalone: true,
-  imports: [CommonModule, DecimalPipe, LoadingSpinnerComponent, EmptyStateComponent, StatusBadgeComponent],
+  imports: [CommonModule, DecimalPipe, LoadingSpinnerComponent, EmptyStateComponent, StatusBadgeComponent, ConfirmDialogComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -74,10 +75,10 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
                   </td>
                   <td class="flex-gap">
                     @if (s.status === 'PENDING' && canPay(s)) {
-                      <button class="btn btn-success btn-sm" (click)="pay(s)">Mark as paid</button>
+                      <button class="btn btn-success btn-sm" (click)="promptPay(s)">Mark as paid</button>
                     }
                     @if (s.status === 'PAID' && !s.verifiedByAdmin && auth.isAdmin()) {
-                      <button class="btn btn-secondary btn-sm" (click)="verify(s)">Verify</button>
+                      <button class="btn btn-secondary btn-sm" (click)="promptVerify(s)">Verify</button>
                     }
                   </td>
                 </tr>
@@ -87,6 +88,16 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
         </div>
       }
     </div>
+
+    <app-confirm-dialog
+      [open]="!!pendingAction()"
+      [title]="pendingAction()?.type === 'pay' ? 'Mark as paid?' : 'Verify settlement?'"
+      [message]="pendingActionMessage()"
+      [confirmLabel]="pendingAction()?.type === 'pay' ? 'Mark as paid' : 'Verify'"
+      [danger]="false"
+      (confirm)="confirmPendingAction()"
+      (cancel)="pendingAction.set(null)"
+    />
   `
 })
 export class SettlementsComponent {
@@ -104,8 +115,14 @@ export class SettlementsComponent {
 
   constructor() {
     this.refresh();
-    this.settlementService.balances().subscribe(b => this.balances.set(b));
-    this.settlementService.summary().subscribe(s => this.summary.set(s));
+    this.settlementService.balances().subscribe({
+      next: (b) => this.balances.set(b),
+      error: () => this.toast.error('Could not load member balances.')
+    });
+    this.settlementService.summary().subscribe({
+      next: (s) => this.summary.set(s),
+      error: () => this.toast.error('Could not load the settlement summary.')
+    });
   }
 
   refresh() {
@@ -120,17 +137,36 @@ export class SettlementsComponent {
     return this.auth.isAdmin() || s.fromMemberName === this.auth.currentUser()?.fullName;
   }
 
-  pay(s: Settlement) {
-    this.settlementService.pay(s.id, new Date().toISOString().slice(0, 10)).subscribe({
-      next: () => { this.toast.success('Marked as paid.'); this.refresh(); },
-      error: (err) => this.toast.error(err.error?.message ?? 'Could not mark as paid.')
-    });
+  pendingAction = signal<{ type: 'pay' | 'verify'; settlement: Settlement } | null>(null);
+
+  pendingActionMessage() {
+    const pending = this.pendingAction();
+    if (!pending) return '';
+    const s = pending.settlement;
+    return pending.type === 'pay'
+      ? `Mark the ₹${s.amount} payment from ${s.fromMemberName} to ${s.toMemberName} as paid?`
+      : `Verify that ${s.fromMemberName} has paid ${s.toMemberName} ₹${s.amount}?`;
   }
 
-  verify(s: Settlement) {
-    this.settlementService.verify(s.id).subscribe({
-      next: () => { this.toast.success('Settlement verified.'); this.refresh(); },
-      error: (err) => this.toast.error(err.error?.message ?? 'Could not verify settlement.')
+  promptPay(s: Settlement) {
+    this.pendingAction.set({ type: 'pay', settlement: s });
+  }
+
+  promptVerify(s: Settlement) {
+    this.pendingAction.set({ type: 'verify', settlement: s });
+  }
+
+  confirmPendingAction() {
+    const pending = this.pendingAction();
+    if (!pending) return;
+    const obs = pending.type === 'pay'
+      ? this.settlementService.pay(pending.settlement.id, new Date().toISOString().slice(0, 10))
+      : this.settlementService.verify(pending.settlement.id);
+    const successMessage = pending.type === 'pay' ? 'Marked as paid.' : 'Settlement verified.';
+    const errorMessage = pending.type === 'pay' ? 'Could not mark as paid.' : 'Could not verify settlement.';
+    obs.subscribe({
+      next: () => { this.toast.success(successMessage); this.pendingAction.set(null); this.refresh(); },
+      error: (err) => { this.toast.error(err.error?.message ?? errorMessage); this.pendingAction.set(null); }
     });
   }
 }

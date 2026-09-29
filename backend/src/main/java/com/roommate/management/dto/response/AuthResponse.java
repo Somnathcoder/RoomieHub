@@ -8,5 +8,6 @@ public record AuthResponse(
         String email,
         Long roomId,
         String roomName,
-        String role
+        String role,
+        boolean mustChangePassword
 ) {}

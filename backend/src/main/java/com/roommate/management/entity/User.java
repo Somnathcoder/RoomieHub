@@ -49,4 +49,8 @@ public class User extends BaseEntity {
 
     @Column(name = "reset_token_expiry")
     private java.time.LocalDateTime resetTokenExpiry;
+
+    @Column(name = "must_change_password", nullable = false)
+    @Builder.Default
+    private boolean mustChangePassword = false;
 }

@@ -78,6 +78,7 @@ public class InventoryService {
     @Transactional
     public String uploadPhoto(Long userId, Long itemId, MultipartFile file) {
         RoomMember caller = roomAccessService.getActiveMembership(userId);
+        roomAccessService.requirePermission(caller, PermissionCode.MANAGE_INVENTORY);
         InventoryItem item = inventoryItemRepository.findById(itemId).orElseThrow(() -> new ResourceNotFoundException("Item not found"));
         roomAccessService.requireSameRoom(caller, item.getRoom().getId());
         String path = fileStorageService.store(file, "inventory", List.of("image/jpeg", "image/png", "image/jpg"));

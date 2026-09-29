@@ -7,6 +7,7 @@ export interface AuthResponse {
   roomId: number | null;
   roomName: string | null;
   role: string | null;
+  mustChangePassword: boolean;
 }
 
 export interface RegisterRequest {

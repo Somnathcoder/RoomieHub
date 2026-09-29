@@ -70,7 +70,11 @@ export class LoginComponent {
       next: (res) => {
         this.loading.set(false);
         this.toast.success('Welcome back, ' + res.data.fullName.split(' ')[0] + '!');
-        this.router.navigate([res.data.roomId ? '/dashboard' : '/room/setup']);
+        if (res.data.mustChangePassword) {
+          this.router.navigate(['/change-password']);
+        } else {
+          this.router.navigate([res.data.roomId ? '/dashboard' : '/room/setup']);
+        }
       },
       error: (err) => {
         this.loading.set(false);

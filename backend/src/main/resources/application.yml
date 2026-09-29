@@ -33,8 +33,8 @@ spring:
       max-request-size: 15MB
 
   mail:
-    host: smtp.gmail.com
-    port: 587
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
     properties:
@@ -46,7 +46,9 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:roommate-management-super-secret-key-change-in-production-min-256-bits-long-0123456789}
+    # No insecure fallback: this file is public (GitHub), so a default here would let anyone
+    # forge valid tokens for any user in any deployment that forgot to set JWT_SECRET.
+    secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}       # 24 hours
     refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}  # 7 days
   file-storage:
@@ -56,6 +58,9 @@ app:
     allowed-doc-types: image/jpeg,image/png,image/jpg,application/pdf
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+  frontend-url: ${FRONTEND_URL:http://localhost:4200}
+  mail:
+    from: ${MAIL_FROM:${MAIL_USERNAME:noreply@roomiehub.app}}
 
 springdoc:
   swagger-ui:

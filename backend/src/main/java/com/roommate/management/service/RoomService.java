@@ -28,6 +28,7 @@ public class RoomService {
     private final RoomMemberRepository roomMemberRepository;
     private final UserRepository userRepository;
     private final ActivityLogService activityLogService;
+    private final RoomAccessService roomAccessService;
 
     @Transactional
     public RoomResponse createRoom(Long userId, RoomCreateRequest request) {
@@ -60,7 +61,9 @@ public class RoomService {
     }
 
     @Transactional(readOnly = true)
-    public RoomResponse getRoom(Long roomId) {
+    public RoomResponse getRoom(Long userId, Long roomId) {
+        RoomMember caller = roomAccessService.getActiveMembership(userId);
+        roomAccessService.requireSameRoom(caller, roomId);
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room not found"));
         return toResponse(room);
     }

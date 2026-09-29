@@ -35,7 +35,7 @@ class ExpenseSettlementFlowIntegrationTest {
     private ObjectMapper objectMapper;
 
     private String registerAndLogin(String name, String email, String password) throws Exception {
-        Map<String, String> body = Map.of("fullName", name, "email", email, "password", password);
+        Map<String, String> body = Map.of("fullName", name, "email", email, "password", password, "mobileNumber", "9666666666");
         MvcResult result = mockMvc.perform(post("/api/auth/register")
                         .contentType("application/json").content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk())

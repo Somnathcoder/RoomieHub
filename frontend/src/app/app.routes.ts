@@ -3,6 +3,7 @@ import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { roomGuard } from './core/guards/room.guard';
 import { adminGuard } from './core/guards/admin.guard';
+import { forcePasswordChangeGuard } from './core/guards/force-password-change.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -28,14 +29,19 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/reset-password.component').then(m => m.ResetPasswordComponent)
   },
   {
-    path: 'room/setup',
+    path: 'change-password',
     canActivate: [authGuard],
+    loadComponent: () => import('./features/auth/change-password.component').then(m => m.ChangePasswordComponent)
+  },
+  {
+    path: 'room/setup',
+    canActivate: [authGuard, forcePasswordChangeGuard],
     loadComponent: () => import('./features/room/room-setup.component').then(m => m.RoomSetupComponent)
   },
 
   {
     path: '',
-    canActivate: [authGuard, roomGuard],
+    canActivate: [authGuard, forcePasswordChangeGuard, roomGuard],
     loadComponent: () => import('./layout/shell.component').then(m => m.ShellComponent),
     children: [
       { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },

@@ -220,13 +220,13 @@ import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner
             <!-- Existing ID Proof -->
             @if (m.hasIdProof) {
 
-              <a
-                [href]="memberService.idProofDownloadUrl(m.roomMemberId)"
-                target="_blank"
+              <button
+                type="button"
                 class="btn-link"
+                (click)="viewIdProof(m)"
               >
                 View uploaded ID proof
-              </a>
+              </button>
 
             }
 
@@ -560,6 +560,32 @@ export class ProfileComponent {
             'Upload failed.'
           );
 
+        }
+
+      });
+
+  }
+
+
+  // View ID proof (requires auth - fetched as a blob rather than a plain link)
+  viewIdProof(m: Member) {
+
+    const tab = window.open('', '_blank');
+
+    this.memberService
+      .viewIdProof(m.roomMemberId)
+      .subscribe({
+
+        next: (blob) => {
+          if (tab) tab.location.href = URL.createObjectURL(blob);
+        },
+
+        error: (err) => {
+          if (tab) tab.close();
+          this.toast.error(
+            err.error?.message ??
+            'Could not load ID proof.'
+          );
         }
 
       });

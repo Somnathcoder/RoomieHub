@@ -34,10 +34,6 @@ export class MemberService {
     return this.http.put<ApiResponse<Member>>(`${this.base}/${id}/status`, { status }).pipe(map(r => r.data));
   }
 
-  deactivate(id: number): Observable<Member> {
-    return this.http.delete<ApiResponse<Member>>(`${this.base}/${id}`).pipe(map(r => r.data));
-  }
-
   uploadPhoto(id: number, file: File): Observable<{ fileUrl: string }> {
     const form = new FormData();
     form.append('file', file);
@@ -50,8 +46,14 @@ export class MemberService {
     return this.http.post<ApiResponse<{ fileUrl: string }>>(`${this.base}/${id}/id-proof`, form).pipe(map(r => r.data));
   }
 
-  idProofDownloadUrl(id: number): string {
-    return `${this.base}/${id}/id-proof`;
+  /**
+   * The id-proof endpoint requires a JWT (it's a sensitive document, not served from /uploads/**),
+   * so it can't be opened as a plain <a href> - the browser's direct navigation request wouldn't
+   * carry the Authorization header and would just render the 401 JSON body. Fetch it as an
+   * authenticated blob instead and let the caller open/download that.
+   */
+  viewIdProof(id: number): Observable<Blob> {
+    return this.http.get(`${this.base}/${id}/id-proof`, { responseType: 'blob' });
   }
 
   getPermissions(id: number): Observable<Permission[]> {

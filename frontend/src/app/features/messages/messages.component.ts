@@ -76,18 +76,29 @@ export class MessagesComponent {
   }
 
   constructor() {
-    this.memberService.list().subscribe(list => this.members.set(list));
+    this.memberService.list().subscribe({
+      next: (list) => this.members.set(list),
+      error: () => this.toast.error('Could not load members.')
+    });
     this.openPublic();
   }
 
   openPublic() {
     this.activeChat.set('public');
-    this.messageService.getPublic().subscribe(list => this.messages.set(list));
+    this.messageService.getPublic().subscribe({
+      // Guard against a slower, now-stale response landing after the user has already
+      // switched to a different conversation - only apply it if 'public' is still selected.
+      next: (list) => { if (this.activeChat() === 'public') this.messages.set(list); },
+      error: () => this.toast.error('Could not load messages.')
+    });
   }
 
   openPrivate(m: Member) {
     this.activeChat.set(m.userId);
-    this.messageService.getConversation(m.userId).subscribe(list => this.messages.set(list));
+    this.messageService.getConversation(m.userId).subscribe({
+      next: (list) => { if (this.activeChat() === m.userId) this.messages.set(list); },
+      error: () => this.toast.error('Could not load messages.')
+    });
   }
 
   send() {

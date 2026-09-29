@@ -148,7 +148,10 @@ export class BillsComponent {
 
   constructor() {
     this.refresh();
-    this.memberService.list().subscribe(list => this.members.set(list));
+    this.memberService.list().subscribe({
+      next: (list) => this.members.set(list),
+      error: () => this.toast.error('Could not load members.')
+    });
   }
 
   canManage() { return this.auth.isAdmin() || this.auth.isModerator(); }

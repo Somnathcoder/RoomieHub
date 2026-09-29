@@ -3,6 +3,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../core/services/auth.service';
 import { NotificationService } from '../core/services/notification.service';
+import { ToastService } from '../core/services/toast.service';
 
 interface NavItem {
   label: string;
@@ -114,6 +115,7 @@ const NAV_ITEMS: NavItem[] = [
 export class ShellComponent {
   auth = inject(AuthService);
   private notificationService = inject(NotificationService);
+  private toast = inject(ToastService);
 
   navItems = NAV_ITEMS;
   sidebarOpen = signal(false);
@@ -125,6 +127,9 @@ export class ShellComponent {
   };
 
   constructor() {
-    this.notificationService.unreadCount().subscribe(count => this.unreadNotifications.set(count));
+    this.notificationService.unreadCount().subscribe({
+      next: (count) => this.unreadNotifications.set(count),
+      error: () => this.toast.error('Could not load your notification count.')
+    });
   }
 }
