@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: '/api',
-  fileBaseUrl: ''
+  apiUrl: 'https://roomiehub-backend.onrender.com/api',
+  fileBaseUrl: 'https://roomiehub-backend.onrender.com'
 };
