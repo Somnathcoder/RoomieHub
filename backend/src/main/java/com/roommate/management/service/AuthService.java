@@ -11,6 +11,7 @@ import com.roommate.management.entity.User;
 import com.roommate.management.entity.enums.MemberStatus;
 import com.roommate.management.exception.BadRequestException;
 import com.roommate.management.exception.ConflictException;
+import com.roommate.management.exception.EmailDeliveryException;
 import com.roommate.management.exception.ResourceNotFoundException;
 import com.roommate.management.exception.UnauthorizedException;
 import com.roommate.management.repository.RoomMemberRepository;
@@ -78,7 +79,14 @@ public class AuthService {
             user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
             userRepository.save(user);
             String resetLink = frontendUrl + "/reset-password?token=" + token;
-            emailService.sendPasswordResetEmail(user.getEmail(), user.getFullName(), resetLink);
+            boolean sent = emailService.sendPasswordResetEmail(user.getEmail(), user.getFullName(), resetLink);
+            if (!sent) {
+                // Safe to surface here: this branch only runs once we already know the account
+                // exists, so telling the client "delivery failed" doesn't add any new
+                // information an attacker could use to enumerate accounts - a working SMTP
+                // config would never hit this branch for ANY email, registered or not.
+                throw new EmailDeliveryException("Could not send the password reset email. Please try again in a few minutes.");
+            }
         });
     }
 
@@ -101,7 +109,11 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
-            throw new UnauthorizedException("Current password is incorrect");
+            // A 400, not 401: the caller IS authenticated (a valid JWT got them past Spring
+            // Security into this method) - this is a request-validation failure, not an auth
+            // failure. Using 401 here used to trip the frontend's blanket "401 -> session
+            // expired, log out" handling and would wrongly kill an otherwise-valid session.
+            throw new BadRequestException("Current password is incorrect");
         }
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         user.setMustChangePassword(false);

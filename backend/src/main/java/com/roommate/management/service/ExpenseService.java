@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -221,7 +222,21 @@ public class ExpenseService {
         List<Expense> expenses = status == null
                 ? expenseRepository.findByRoomIdOrderByExpenseDateDesc(caller.getRoom().getId())
                 : expenseRepository.findByRoomIdAndStatus(caller.getRoom().getId(), status);
-        return expenses.stream().map(this::toResponse).toList();
+        if (expenses.isEmpty()) {
+            return List.of();
+        }
+        // One query for every split across the whole list, instead of one findByExpenseId
+        // call per expense (see toResponse(Expense) for the single-expense equivalent).
+        List<Long> expenseIds = expenses.stream().map(Expense::getId).toList();
+        Map<Long, List<SplitResponse>> splitsByExpense = expenseSplitRepository.findByExpenseIdIn(expenseIds).stream()
+                .collect(Collectors.groupingBy(
+                        s -> s.getExpense().getId(),
+                        Collectors.mapping(
+                                s -> new SplitResponse(s.getRoommate().getId(), s.getRoommate().getUser().getFullName(), s.getShareAmount()),
+                                Collectors.toList())));
+        return expenses.stream()
+                .map(e -> toResponse(e, splitsByExpense.getOrDefault(e.getId(), List.of())))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -269,6 +284,12 @@ public class ExpenseService {
         List<SplitResponse> splits = expenseSplitRepository.findByExpenseId(e.getId()).stream()
                 .map(s -> new SplitResponse(s.getRoommate().getId(), s.getRoommate().getUser().getFullName(), s.getShareAmount()))
                 .toList();
+        return toResponse(e, splits);
+    }
+
+    /** Same mapping, but for the splits already batch-fetched by listExpenses() - avoids a
+     *  separate findByExpenseId query per row when mapping a whole list. */
+    private ExpenseResponse toResponse(Expense e, List<SplitResponse> splits) {
         return new ExpenseResponse(
                 e.getId(), e.getTitle(), e.getDescription(), e.getTotalAmount(), e.getCategory().name(),
                 e.getPaidBy().getId(), e.getPaidBy().getUser().getFullName(), e.getExpenseDate(), e.getReceiptPhotoUrl(),

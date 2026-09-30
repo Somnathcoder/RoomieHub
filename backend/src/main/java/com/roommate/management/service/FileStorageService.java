@@ -3,6 +3,7 @@ package com.roommate.management.service;
 import com.roommate.management.config.FileStorageProperties;
 import com.roommate.management.exception.BadRequestException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -63,5 +65,21 @@ public class FileStorageService {
 
     public Path resolve(String relativePath) {
         return Paths.get(properties.getBaseDir(), relativePath).toAbsolutePath().normalize();
+    }
+
+    /**
+     * Deterministic extension -> MediaType mapping for serving a stored file back with the
+     * correct Content-Type. Deliberately NOT using Files.probeContentType() - it delegates to
+     * the OS's mime-type registry, which is unreliable/absent on minimal container images (the
+     * exact environment this app runs in on Render), and would otherwise fall back to a type the
+     * browser can't render inline (blank tab) even though the file itself is fine.
+     */
+    public MediaType detectContentType(String relativePath) {
+        String lower = relativePath.toLowerCase(Locale.ROOT);
+        if (lower.endsWith(".png")) return MediaType.IMAGE_PNG;
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return MediaType.IMAGE_JPEG;
+        if (lower.endsWith(".webp")) return MediaType.valueOf("image/webp");
+        if (lower.endsWith(".pdf")) return MediaType.APPLICATION_PDF;
+        return MediaType.APPLICATION_OCTET_STREAM;
     }
 }

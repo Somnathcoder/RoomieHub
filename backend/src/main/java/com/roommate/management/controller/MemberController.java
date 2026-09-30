@@ -90,7 +90,13 @@ public class MemberController {
         String relativePath = memberService.getIdProofPath(principal.getId(), id);
         try {
             Resource resource = new UrlResource(fileStorageService.resolve(relativePath).toUri());
-            return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "inline").body(resource);
+            if (!resource.exists() || !resource.isReadable()) {
+                throw new com.roommate.management.exception.ResourceNotFoundException("ID proof file not found");
+            }
+            return ResponseEntity.ok()
+                    .contentType(fileStorageService.detectContentType(relativePath))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
+                    .body(resource);
         } catch (MalformedURLException e) {
             throw new com.roommate.management.exception.ResourceNotFoundException("ID proof file not found");
         }

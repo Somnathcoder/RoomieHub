@@ -110,8 +110,11 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>Mobile (optional)</label>
-                <input type="text" formControlName="mobileNumber" />
+                <label>Mobile number</label>
+                <input type="text" formControlName="mobileNumber" placeholder="9876543210" />
+                @if (addForm.controls.mobileNumber.invalid && addForm.controls.mobileNumber.touched) {
+                  <div class="field-error">Enter a valid 10-digit mobile number.</div>
+                }
               </div>
               <div class="form-group">
                 <label>Role</label>
@@ -207,7 +210,7 @@ export class MembersComponent {
   addForm = this.fb.nonNullable.group({
     fullName: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
-    mobileNumber: [''],
+    mobileNumber: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
     role: ['MEMBER'],
     roomNumber: [''],
     bedNumber: ['']

@@ -14,4 +14,8 @@ public interface RoomMemberRepository extends JpaRepository<RoomMember, Long> {
     List<RoomMember> findByUserId(Long userId);
     Optional<RoomMember> findByUserIdAndStatus(Long userId, MemberStatus status);
     long countByRoomIdAndStatus(Long roomId, MemberStatus status);
+
+    // Used by the admin dashboard's "total members" count - a COUNT instead of loading every
+    // RoomMember row (each pulling in a lazy User/Room) just to call .size() on the list.
+    long countByRoomId(Long roomId);
 }

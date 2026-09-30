@@ -94,7 +94,7 @@ public class DashboardService {
         LocalDate monthStart = now.withDayOfMonth(1);
         LocalDate monthEnd = now.withDayOfMonth(now.lengthOfMonth());
 
-        long totalMembers = roomMemberRepository.findByRoomId(roomId).size();
+        long totalMembers = roomMemberRepository.countByRoomId(roomId);
         long activeMembers = roomMemberRepository.countByRoomIdAndStatus(roomId, MemberStatus.ACTIVE);
 
         BigDecimal monthlyExpenses = expenseRepository.findByRoomIdAndExpenseDateBetween(roomId, monthStart, monthEnd).stream()
@@ -105,8 +105,7 @@ public class DashboardService {
                 .map(Settlement::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
 
         long pendingExpenses = expenseRepository.findByRoomIdAndStatus(roomId, ExpenseStatus.PENDING).size();
-        long pendingTasks = taskRepository.findByRoomIdOrderByDueDateAsc(roomId).stream()
-                .filter(t -> t.getStatus() != TaskStatus.COMPLETED).count();
+        long pendingTasks = taskRepository.countByRoomIdAndStatusNot(roomId, TaskStatus.COMPLETED);
 
         List<BillResponse> upcomingBills = billRepository.findByRoomIdAndDueDateBetween(roomId, now, now.plusDays(7)).stream()
                 .filter(b -> b.getStatus() != BillStatus.PAID).map(this::toBillResponse).toList();
@@ -120,8 +119,7 @@ public class DashboardService {
                         a.getReferenceId(), a.getDescription(), a.getCreatedAt()))
                 .toList();
 
-        long openIssues = issueRepository.findByRoomIdOrderByCreatedAtDesc(roomId).stream()
-                .filter(i -> i.getStatus() != IssueStatus.RESOLVED).count();
+        long openIssues = issueRepository.countByRoomIdAndStatusNot(roomId, IssueStatus.RESOLVED);
 
         return new AdminDashboardResponse(totalMembers, activeMembers, monthlyExpenses, pendingPayments, pendingExpenses,
                 pendingTasks, upcomingBills, upcomingCleaning, recentActivities, openIssues);

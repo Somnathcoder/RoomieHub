@@ -57,7 +57,7 @@ class ExpenseSettlementFlowIntegrationTest {
         // Admin adds the second user as a MEMBER
         Map<String, Object> memberBody = Map.of(
                 "fullName", "Member Roommate", "email", "member@example.com",
-                "password", "password123", "role", "MEMBER"
+                "password", "password123", "role", "MEMBER", "mobileNumber", "9444455555"
         );
         mockMvc.perform(post("/api/members").header("Authorization", "Bearer " + adminToken)
                         .contentType("application/json").content(objectMapper.writeValueAsString(memberBody)))

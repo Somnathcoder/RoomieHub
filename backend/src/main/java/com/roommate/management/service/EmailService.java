@@ -19,11 +19,13 @@ public class EmailService {
     }
 
     /**
-     * Best-effort send: failures are logged, not thrown, so callers (e.g. forgot-password)
-     * can keep responding identically regardless of whether the email actually went out -
-     * otherwise a delivery failure would leak which emails are registered.
+     * Returns whether the send actually succeeded. Failures are logged here (safe: only the
+     * recipient address, never the token/password) but NOT thrown - it's the caller's job to
+     * decide what a failure means. For forgot-password specifically, a failure must still not
+     * distinguish "this email isn't registered" from "delivery failed", so the caller only acts
+     * on this return value from inside the branch where the account is already known to exist.
      */
-    public void sendPasswordResetEmail(String toEmail, String fullName, String resetLink) {
+    public boolean sendPasswordResetEmail(String toEmail, String fullName, String resetLink) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromAddress);
@@ -37,8 +39,10 @@ public class EmailService {
                     "- RoomieHub"
             );
             mailSender.send(message);
+            return true;
         } catch (Exception e) {
             log.error("Failed to send password reset email to {}", toEmail, e);
+            return false;
         }
     }
 }

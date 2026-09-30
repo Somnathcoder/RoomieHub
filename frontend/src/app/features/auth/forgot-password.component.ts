@@ -22,6 +22,7 @@ import { AuthService } from '../../core/services/auth.service';
               <label for="email">Email</label>
               <input id="email" type="email" formControlName="email" placeholder="you@example.com" />
             </div>
+            @if (errorMessage()) { <div class="field-error mb-2">{{ errorMessage() }}</div> }
             <button type="submit" class="btn btn-primary w-full" [disabled]="form.invalid || loading()">
               {{ loading() ? 'Sending...' : 'Send reset link' }}
             </button>
@@ -41,6 +42,7 @@ export class ForgotPasswordComponent {
 
   loading = signal(false);
   submitted = signal(false);
+  errorMessage = signal<string | null>(null);
 
   form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]]
@@ -49,9 +51,21 @@ export class ForgotPasswordComponent {
   submit() {
     if (this.form.invalid) return;
     this.loading.set(true);
+    this.errorMessage.set(null);
     this.auth.forgotPassword(this.form.getRawValue().email).subscribe({
       next: () => { this.loading.set(false); this.submitted.set(true); },
-      error: () => { this.loading.set(false); this.submitted.set(true); }
+      error: (err) => {
+        this.loading.set(false);
+        if (err.status === 503) {
+          // A genuine delivery failure (SMTP down, etc.) - tell the user honestly instead of
+          // claiming the email was sent. Every other error still falls back to the generic
+          // message below, same as before, so a network hiccup can't be used to tell whether
+          // an email is registered.
+          this.errorMessage.set(err.error?.message ?? 'Could not send the reset email. Please try again in a few minutes.');
+        } else {
+          this.submitted.set(true);
+        }
+      }
     });
   }
 }

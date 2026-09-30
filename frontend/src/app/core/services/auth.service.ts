@@ -5,6 +5,7 @@ import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
 import { AuthResponse, LoginRequest, RegisterRequest } from '../models/auth.model';
+import { MemberService } from './member.service';
 
 const STORAGE_KEY = 'rms_auth';
 
@@ -12,6 +13,7 @@ const STORAGE_KEY = 'rms_auth';
 export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
+  private memberService = inject(MemberService);
 
   private _currentUser = signal<AuthResponse | null>(this.readStored());
   readonly currentUser = this._currentUser.asReadonly();
@@ -51,6 +53,7 @@ export class AuthService {
   logout(): void {
     localStorage.removeItem(STORAGE_KEY);
     this._currentUser.set(null);
+    this.memberService.clearCache();
     this.router.navigate(['/login']);
   }
 

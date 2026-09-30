@@ -28,6 +28,7 @@ application-prod.properties
 # Uploaded files
 backend/uploads/*
 !backend/uploads/.gitkeep
+backend/test-uploads/
 
 # Temporary files
 *.tmp

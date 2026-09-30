@@ -26,7 +26,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
       if (isApiCall) {
-        if (error.status === 401) {
+        if (error.status === 401 && token) {
+          // Only a request that actually carried our token can have had its *session*
+          // rejected. A 401 on a request with no token (e.g. a failed login attempt) is a
+          // credentials error, not an expired session - logging out and showing "session
+          // expired" there would be actively misleading (there was no session yet).
           auth.logout();
           toast.error('Your session has expired. Please log in again.');
         } else if (error.status === 0) {

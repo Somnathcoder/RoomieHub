@@ -21,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -72,8 +74,35 @@ public class PollService {
     @Transactional(readOnly = true)
     public List<PollResponse> list(Long userId) {
         RoomMember caller = roomAccessService.getActiveMembership(userId);
-        return pollRepository.findByRoomIdOrderByCreatedAtDesc(caller.getRoom().getId())
-                .stream().map(p -> toResponse(p, userId)).toList();
+        List<Poll> polls = pollRepository.findByRoomIdOrderByCreatedAtDesc(caller.getRoom().getId());
+        if (polls.isEmpty()) {
+            return List.of();
+        }
+
+        // Was previously up to ~(1 + options + 2 + 1) queries PER poll (options, one vote-count
+        // query per option, the creator's name, the caller's own vote) - the worst N+1 in the
+        // app. Batched down to a fixed 4 queries total regardless of how many polls/options.
+        List<Long> pollIds = polls.stream().map(Poll::getId).toList();
+        List<PollOption> allOptions = pollOptionRepository.findByPollIdIn(pollIds);
+        Map<Long, List<PollOption>> optionsByPoll = allOptions.stream()
+                .collect(Collectors.groupingBy(o -> o.getPoll().getId()));
+
+        List<Long> optionIds = allOptions.stream().map(PollOption::getId).toList();
+        Map<Long, Long> voteCountByOption = optionIds.isEmpty() ? Map.of() : pollVoteRepository.countByOptionIds(optionIds).stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+
+        Map<Long, Long> myVoteOptionByPoll = pollVoteRepository.findByPollIdInAndVoterId(pollIds, caller.getId()).stream()
+                .collect(Collectors.toMap(v -> v.getPoll().getId(), v -> v.getOption().getId()));
+
+        return polls.stream().map(poll -> {
+            List<PollOptionResponse> optionResponses = optionsByPoll.getOrDefault(poll.getId(), List.of()).stream()
+                    .map(o -> new PollOptionResponse(o.getId(), o.getOptionText(), voteCountByOption.getOrDefault(o.getId(), 0L)))
+                    .toList();
+            long totalVotes = optionResponses.stream().mapToLong(PollOptionResponse::voteCount).sum();
+            return new PollResponse(poll.getId(), poll.getQuestion(), poll.getCreatedBy().getUser().getFullName(),
+                    poll.getStatus().name(), poll.getClosesAt(), optionResponses, totalVotes,
+                    myVoteOptionByPoll.get(poll.getId()));
+        }).toList();
     }
 
     @Transactional

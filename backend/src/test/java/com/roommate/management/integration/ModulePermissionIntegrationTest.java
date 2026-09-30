@@ -86,7 +86,7 @@ class ModulePermissionIntegrationTest {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "fullName", "Perm Moderator", "email", "permmod@example.com",
-                                "password", "password123", "role", "MODERATOR"))))
+                                "password", "password123", "role", "MODERATOR", "mobileNumber", "9333322222"))))
                 .andExpect(status().isOk());
 
         MvcResult listResult = mockMvc.perform(get("/api/members").header("Authorization", "Bearer " + adminToken))
