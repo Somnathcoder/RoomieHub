@@ -38,7 +38,10 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",
-            "/uploads/**"
+            "/uploads/**",
+            // Render health check. Only "health" is exposed via management.endpoints.web.exposure
+            // (application.yml) - no other actuator endpoint exists to be reachable here.
+            "/actuator/health"
     };
 
     @Bean

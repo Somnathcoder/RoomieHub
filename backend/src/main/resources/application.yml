@@ -73,6 +73,16 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
+management:
+  endpoints:
+    web:
+      exposure:
+        # Only health - never env/beans/configprops/mappings/etc.
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 logging:
   level:
     com.roommate.management: INFO
