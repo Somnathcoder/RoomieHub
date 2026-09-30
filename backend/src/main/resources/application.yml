@@ -1,5 +1,6 @@
 server:
-  port: 8080
+  # Render assigns the port dynamically via $PORT; 8080 stays the local-dev default.
+  port: ${PORT:8080}
   servlet:
     context-path: /
 
@@ -8,7 +9,11 @@ spring:
     name: roommate-management-backend
 
   datasource:
-    url: jdbc:mysql://localhost:3306/roommate_management?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    # Built from separate DB_HOST/DB_PORT/DB_NAME vars (not one opaque SPRING_DATASOURCE_URL)
+    # so a wrong value is visible/fixable as a single Render field instead of hunting inside a
+    # concatenated JDBC string. sslMode=REQUIRED is mandatory for Aiven; defaults below only
+    # apply to local dev.
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:roommate_management}?sslMode=REQUIRED&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
