@@ -77,11 +77,15 @@ management:
   endpoints:
     web:
       exposure:
-        # Only health - never env/beans/configprops/mappings/etc.
         include: health
+
   endpoint:
     health:
       show-details: never
+
+  health:
+    mail:
+      enabled: false
 
 logging:
   level:
